@@ -26,6 +26,7 @@ import (
 )
 
 type RulerSrv struct {
+	xactManager     store.TransactionManager
 	store           store.RuleStore
 	DatasourceCache datasources.CacheService
 	QuotaService    *quota.QuotaService
@@ -262,7 +263,7 @@ func (srv RulerSrv) updateAlertRulesInGroup(c *models.ReqContext, namespace *mod
 	// TODO add create rules authz logic
 
 	var changes *RuleChanges = nil
-	err := srv.store.InTransaction(c.Req.Context(), func(tranCtx context.Context) error {
+	err := srv.xactManager.InTransaction(c.Req.Context(), func(tranCtx context.Context) error {
 		var err error
 		changes, err = calculateChanges(tranCtx, srv.store, c.SignedInUser.OrgId, namespace, groupName, rules)
 		if err != nil {

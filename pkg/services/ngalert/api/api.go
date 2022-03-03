@@ -62,6 +62,7 @@ type API struct {
 	ExpressionService    *expr.Service
 	QuotaService         *quota.QuotaService
 	Schedule             schedule.ScheduleService
+	TransactionManager   store.TransactionManager
 	RuleStore            store.RuleStore
 	InstanceStore        store.InstanceStore
 	AlertingStore        AlertingStore
@@ -95,7 +96,13 @@ func (api *API) RegisterAPIEndpoints(m *metrics.API) {
 	api.RegisterRulerApiEndpoints(NewForkedRuler(
 		api.DatasourceCache,
 		NewLotexRuler(proxy, logger),
-		&RulerSrv{DatasourceCache: api.DatasourceCache, QuotaService: api.QuotaService, scheduleService: api.Schedule, store: api.RuleStore, log: logger, cfg: &api.Cfg.UnifiedAlerting},
+		&RulerSrv{
+			DatasourceCache: api.DatasourceCache,
+			QuotaService:    api.QuotaService,
+			scheduleService: api.Schedule,
+			store:           api.RuleStore,
+			xactManager:     api.TransactionManager,
+			log:             logger, cfg: &api.Cfg.UnifiedAlerting},
 	), m)
 	api.RegisterTestingApiEndpoints(NewForkedTestingApi(
 		&TestingApiSrv{
