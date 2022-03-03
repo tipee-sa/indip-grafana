@@ -126,4 +126,8 @@ const (
 	// FlagFileStoreApi
 	// Simple API for managing files
 	FlagFileStoreApi = "fileStoreApi"
+
+	// FlagResourcePickerForMetrics
+	// New UI for Azure Monitor Metrics Query
+	FlagResourcePickerForMetrics = "resourcePickerForMetrics"
 )

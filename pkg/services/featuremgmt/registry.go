@@ -168,5 +168,10 @@ var (
 			State:           FeatureStateAlpha,
 			RequiresDevMode: true,
 		},
+		{
+			Name:        "resourcePickerForMetrics",
+			Description: "New UI for Azure Monitor Metrics Query",
+			State:       FeatureStateAlpha,
+		},
 	}
 )
