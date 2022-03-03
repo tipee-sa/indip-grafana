@@ -1,6 +1,6 @@
 import { css } from '@emotion/css';
 import { GrafanaTheme2 } from '@grafana/data';
-import { Alert, Button, LoadingPlaceholder, useStyles2 } from '@grafana/ui';
+import { Alert, Button, Input, LoadingPlaceholder, useStyles2 } from '@grafana/ui';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import ResourcePickerData from '../../resourcePicker/resourcePickerData';
@@ -157,26 +157,17 @@ const ResourcePicker = ({
           />
 
           <div className={styles.selectionFooter}>
-            {selectedResourceRows.length > 0 && (
-              <>
-                <Space v={2} />
-                <h5>Selection</h5>
-                <NestedResourceTable
-                  rows={selectedResourceRows}
-                  requestNestedRows={requestNestedRows}
-                  onRowSelectedChange={handleSelectionChanged}
-                  selectedRows={selectedResourceRows}
-                  noHeader={true}
-                />
-              </>
-            )}
+            <h5>Selection path</h5>
+            <Input value={internalSelected} onChange={(event) => setInternalSelected(event.currentTarget.value)} />
 
             <Space v={2} />
 
             <Button disabled={!!errorMessage} onClick={handleApply}>
               Apply
             </Button>
+
             <Space layout="inline" h={1} />
+
             <Button onClick={onCancel} variant="secondary">
               Cancel
             </Button>
