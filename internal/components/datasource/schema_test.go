@@ -10,13 +10,13 @@ import (
 
 func TestDatasourceLineageIsValid(t *testing.T) {
 	ctx := cuecontext.New()
-	l, err := DatasourceLineage(thema.NewLibrary(ctx))
+	l, err := NewLineage(thema.NewLibrary(ctx))
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	invalidRawDSJSON := `{ "name": "sloth" }`
-	k := newDataSourceJSONKernel(l)
+	k, err := NewJSONKernel(l)
 	_, _, err = k.Converge([]byte(invalidRawDSJSON))
 	if err == nil {
 		t.Fatal(err)

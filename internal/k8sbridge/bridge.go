@@ -15,8 +15,10 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	ctrl "sigs.k8s.io/controller-runtime"
+	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/scheme"
 
+	"github.com/grafana/grafana/internal/components"
 	"github.com/grafana/grafana/pkg/infra/log"
 	"github.com/grafana/grafana/pkg/schema"
 	"github.com/grafana/grafana/pkg/services/featuremgmt"
@@ -40,7 +42,7 @@ type Service struct {
 }
 
 // ProvideService
-func ProvideService(cfg *setting.Cfg, features featuremgmt.FeatureToggles, list schema.CoreSchemaList) (*Service, error) {
+func ProvideService(cfg *setting.Cfg, features featuremgmt.FeatureToggles, modelRegistry *components.Registry) (*Service, error) {
 	enabled := features.IsEnabled(featuremgmt.FlagIntentapi)
 	if !enabled {
 		return &Service{
@@ -66,11 +68,6 @@ func ProvideService(cfg *setting.Cfg, features featuremgmt.FeatureToggles, list 
 		return nil, err
 	}
 
-	cset, err := NewClientset(config)
-	if err != nil {
-		return nil, err
-	}
-
 	schm := runtime.NewScheme()
 	schemaGroupVersion := k8schema.GroupVersion{
 		Group:   groupName,
@@ -84,8 +81,18 @@ func ProvideService(cfg *setting.Cfg, features featuremgmt.FeatureToggles, list 
 		return nil, err
 	}
 
-	for _, cr := range list {
-		schemaBuilder.Register(cr.GetRuntimeObjects()...)
+	models := modelRegistry.Coremodels()
+	schemas := make(schema.CoreSchemaList, 0, len(models))
+	for _, m := range models {
+		s := m.Schema()
+		schemas = append(schemas, s)
+		schemaBuilder.Register(s.RuntimeObjects()...)
+	}
+
+	// TODO: pass models to clientset to create clients and register CRDs.
+	cset, err := NewClientset(config, schemas)
+	if err != nil {
+		return nil, err
 	}
 
 	mgr, err := ctrl.NewManager(config, ctrl.Options{
@@ -95,14 +102,40 @@ func ProvideService(cfg *setting.Cfg, features featuremgmt.FeatureToggles, list 
 		return nil, err
 	}
 
+	for _, m := range models {
+		// Check if there's a reconciler.
+		rec, ok := m.(components.ReconcilableCoremodel)
+		if !ok {
+			continue
+		}
+
+		s := m.Schema()
+		obj := s.RuntimeObjects()[0] // TODO: split
+		cli, ok := obj.(ctrlclient.Object)
+		if !ok {
+			return nil, errors.New("yikes") // TODO
+		}
+
+		if err := ctrl.NewControllerManagedBy(mgr).
+			Named(fmt.Sprintf("%s-controller", s.Name())). // TODO: versioning?
+			For(cli).
+			Complete(rec); err != nil {
+			return nil, err
+		}
+	}
+
 	return &Service{
 		config:  config,
 		client:  cset,
-		schemas: list,
+		schemas: schemas,
 		manager: mgr,
 		enabled: enabled,
 		logger:  log.New("k8sbridge.service"),
 	}, nil
+}
+
+func (s *Service) RegisterCoremodel(model components.Coremodel) error {
+	return nil
 }
 
 // IsDisabled
