@@ -2124,7 +2124,7 @@ var expNonEmailNotifications = map[string][]string{
 			  "text": "Integration Test ",
 			  "fallback": "Integration Test [FIRING:1] SlackAlert1 ",
 			  "footer": "Grafana v",
-			  "footer_icon": "https://grafana.com/assets/img/fav32.png",
+			  "footer_icon": "https://grafana.com/assets/img/indip_favicon.svg",
 			  "color": "#D63232",
 			  "ts": %s
 			}
@@ -2151,7 +2151,7 @@ var expNonEmailNotifications = map[string][]string{
 			  "text": "**Firing**\n\nValue: [ var='A' labels={} value=1 ]\nLabels:\n - alertname = SlackAlert2\nAnnotations:\nSource: http://localhost:3000/alerting/UID_SlackAlert2/edit\nSilence: http://localhost:3000/alerting/silence/new?alertmanager=grafana&matcher=alertname%%3DSlackAlert2\n",
 			  "fallback": "[FIRING:1] SlackAlert2 ",
 			  "footer": "Grafana v",
-			  "footer_icon": "https://grafana.com/assets/img/fav32.png",
+			  "footer_icon": "https://grafana.com/assets/img/indip_favicon.svg",
 			  "color": "#D63232",
 			  "ts": %s
 			}
@@ -2280,7 +2280,7 @@ var expNonEmailNotifications = map[string][]string{
 			{
 			  "color": 14037554,
 			  "footer": {
-				"icon_url": "https://grafana.com/assets/img/fav32.png",
+				"icon_url": "https://grafana.com/assets/img/indip_favicon.svg",
 				"text": "Grafana v"
 			  },
 			  "title": "[FIRING:1] DiscordAlert ",
