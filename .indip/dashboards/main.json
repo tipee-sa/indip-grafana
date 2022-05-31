@@ -18,20 +18,21 @@
       }
     ]
   },
+  "description": "",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 2,
-  "iteration": 1648748473094,
+  "iteration": 1653988890179,
   "links": [
     {
       "asDropdown": true,
-      "icon": "bolt",
+      "icon": "external link",
       "includeVars": true,
       "keepTime": true,
       "tags": [],
       "targetBlank": true,
-      "title": "Data",
-      "tooltip": "View full data in Indip",
+      "title": "Afficher les saisies associées",
+      "tooltip": "",
       "type": "link",
       "url": "http://127.0.0.1:10530/"
     }
@@ -108,7 +109,8 @@
           "placement": "bottom"
         },
         "tooltip": {
-          "mode": "multi"
+          "mode": "multi",
+          "sort": "none"
         }
       },
       "targets": [
@@ -180,10 +182,6 @@
       "type": "timeseries"
     },
     {
-      "datasource": {
-        "type": "mysql",
-        "uid": "lMLvkBfnk"
-      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -227,14 +225,15 @@
           "values": false
         },
         "tooltip": {
-          "mode": "single"
+          "mode": "single",
+          "sort": "none"
         }
       },
       "targets": [
         {
           "datasource": {
             "type": "mysql",
-            "uid": "lMLvkBfnk"
+            "uid": "indip"
           },
           "format": "time_series",
           "group": [
@@ -315,7 +314,10 @@
               "tooltip": false,
               "viz": false
             },
-            "lineWidth": 1
+            "lineWidth": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            }
           },
           "mappings": [],
           "thresholds": {
@@ -339,6 +341,7 @@
       },
       "id": 15,
       "options": {
+        "barRadius": 0,
         "barWidth": 0.9,
         "groupWidth": 0.7,
         "legend": {
@@ -351,9 +354,11 @@
         "stacking": "normal",
         "text": [],
         "tooltip": {
-          "mode": "single"
+          "mode": "single",
+          "sort": "none"
         },
-        "xTickLabelRotation": 0
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
       },
       "pluginVersion": "8.3.4",
       "targets": [
@@ -434,7 +439,7 @@
     }
   ],
   "refresh": false,
-  "schemaVersion": 34,
+  "schemaVersion": 35,
   "style": "dark",
   "tags": [],
   "templating": {
@@ -442,8 +447,8 @@
       {
         "current": {
           "selected": false,
-          "text": "Site WEST > Site ANDERSON",
-          "value": "Site WEST > Site ANDERSON"
+          "text": "Demo > AAAANNE Onyme",
+          "value": "Demo > AAAANNE Onyme"
         },
         "definition": "SELECT distinct(observable_path) as observable\nFROM input_view\nWHERE $__timeFilter(date_time)\nORDER BY observable",
         "hide": 1,
@@ -465,14 +470,15 @@
         "auto_min": "1m",
         "current": {
           "selected": false,
-          "text": "7d",
-          "value": "7d"
+          "text": "auto",
+          "value": "$__auto_interval_interval"
         },
         "hide": 0,
+        "label": "Laps de temps",
         "name": "interval",
         "options": [
           {
-            "selected": false,
+            "selected": true,
             "text": "auto",
             "value": "$__auto_interval_interval"
           },
@@ -497,7 +503,7 @@
             "value": "1d"
           },
           {
-            "selected": true,
+            "selected": false,
             "text": "7d",
             "value": "7d"
           },
@@ -541,7 +547,7 @@
         "definition": "SELECT DISTINCT(indicator_path) as indicator\nFROM input_view\nWHERE $__timeFilter(date_time) AND observable_path = \"$observable\"\nORDER BY indicator",
         "hide": 0,
         "includeAll": true,
-        "label": "indicators",
+        "label": "Indicateurs",
         "multi": true,
         "name": "indicators",
         "options": [],
@@ -555,8 +561,8 @@
     ]
   },
   "time": {
-    "from": "now-1y/fy",
-    "to": "now-1y/fy"
+    "from": "now-30d",
+    "to": "now"
   },
   "timepicker": {
     "hidden": false,
@@ -576,6 +582,6 @@
   "timezone": "",
   "title": "Tableau de bord principal",
   "uid": "main",
-  "version": 20,
+  "version": 1,
   "weekStart": ""
 }
