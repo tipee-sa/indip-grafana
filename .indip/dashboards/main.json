@@ -28,13 +28,13 @@
       "asDropdown": true,
       "icon": "external link",
       "includeVars": true,
-      "keepTime": true,
+      "keepTime": false,
       "tags": [],
       "targetBlank": true,
       "title": "Afficher les saisies associées",
       "tooltip": "",
       "type": "link",
-      "url": "http://127.0.0.1:10530/"
+      "url": "http://127.0.0.1:10530/_/indip/input_list/from_grafana?timeRange=${__from:date}/${__to:date}"
     }
   ],
   "liveNow": false,
