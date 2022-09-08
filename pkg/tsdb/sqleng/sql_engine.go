@@ -258,9 +258,9 @@ func (e *DataSourceHandler) executeQuery(query backend.DataQuery, wg *sync.WaitG
 
 	// test
 	// user.Login
-	var re = regexp.MustCompile(`(?m)(.*)WHERE (.*)`)
-	var substitution = "$1 WHERE observable_id = 0x017F22707D18DC5029A393177A418CF8 AND ($2)"
-	interpolatedQuery = re.ReplaceAllString(interpolatedQuery, substitution)
+	//var re = regexp.MustCompile(`(?m)(.*)WHERE (.*)`)
+	//var substitution = "$1 WHERE observable_id = 0x017F22707D18DC5029A393177A418CF8 AND ($2)"
+	//interpolatedQuery = re.ReplaceAllString(interpolatedQuery, substitution)
 
 	session := e.engine.NewSession()
 	defer session.Close()
