@@ -14,7 +14,7 @@ profiles:
       tagPolicy:
         sha256: { }
       artifacts:
-        - image: europe-west6-docker.pkg.dev/gammadia-ch/dany/grafana-dev
+        - image: europe-west6-docker.pkg.dev/gammadia-indip/indip/indip-grafana
       googleCloudBuild:
         projectId: gammadia-ch
         timeout: 1200s
