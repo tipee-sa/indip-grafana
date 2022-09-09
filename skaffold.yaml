@@ -5,6 +5,8 @@ profiles:
     build:
       tagPolicy:
         sha256: { }
+        gitCommit:
+          ignoreChanges: true
       artifacts:
         - image: indip-grafana-cloud-run
       local:
@@ -13,6 +15,8 @@ profiles:
     build:
       tagPolicy:
         sha256: { }
+        gitCommit:
+          ignoreChanges: true
       artifacts:
         - image: europe-west6-docker.pkg.dev/gammadia-indip/indip/indip-grafana
       googleCloudBuild:
