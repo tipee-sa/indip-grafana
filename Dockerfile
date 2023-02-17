@@ -92,9 +92,7 @@ EXPOSE 3000
 
 COPY ./packaging/docker/run.sh /run.sh
 
-COPY ./.indip/dashboards /var/lib/grafana/dashboards
 COPY ./.indip/provisioning/datasources /etc/grafana/provisioning/datasources
-COPY ./.indip/provisioning/dashboards /etc/grafana/provisioning/dashboards
 
 USER grafana
 ENTRYPOINT [ "/run.sh" ]
