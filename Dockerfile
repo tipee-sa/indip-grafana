@@ -180,5 +180,7 @@ ARG RUN_SH=./packaging/docker/run.sh
 
 COPY ${RUN_SH} /run.sh
 
+COPY ./.indip/provisioning/datasources "$GF_PATHS_PROVISIONING/datasources"
+
 USER "$GF_UID"
 ENTRYPOINT [ "/run.sh" ]

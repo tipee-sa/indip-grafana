@@ -1,0 +1,24 @@
+apiVersion: skaffold/v2beta26
+kind: Config
+profiles:
+  - name: local
+    build:
+      tagPolicy:
+        sha256: { }
+        gitCommit:
+          ignoreChanges: true
+      artifacts:
+        - image: indip-grafana-cloud-run
+      local:
+        useBuildkit: true
+  - name: gcloud
+    build:
+      tagPolicy:
+        sha256: { }
+        gitCommit:
+         ignoreChanges: true
+      artifacts:
+        - image: europe-west6-docker.pkg.dev/gammadia-indip/indip/indip-grafana:beta-5.1
+      googleCloudBuild:
+        projectId: gammadia-ch
+        timeout: 1200s
