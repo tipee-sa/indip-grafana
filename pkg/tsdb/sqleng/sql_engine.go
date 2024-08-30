@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/xwb1989/sqlparser"
 	"net"
 	"regexp"
 	"strconv"
@@ -183,7 +184,7 @@ func (e *DataSourceHandler) QueryData(ctx context.Context, req *backend.QueryDat
 		}
 
 		wg.Add(1)
-		go e.executeQuery(query, &wg, ctx, ch, queryjson)
+		go e.executeQuery(query, &wg, ctx, ch, queryjson, req)
 	}
 
 	wg.Wait()
@@ -205,7 +206,7 @@ func stackTrace(skip int) string {
 }
 
 func (e *DataSourceHandler) executeQuery(query backend.DataQuery, wg *sync.WaitGroup, queryContext context.Context,
-	ch chan DBDataResponse, queryJson QueryJson) {
+	ch chan DBDataResponse, queryJson QueryJson, req *backend.QueryDataRequest) {
 	defer wg.Done()
 	queryResult := DBDataResponse{
 		dataResponse: backend.DataResponse{},
@@ -251,6 +252,12 @@ func (e *DataSourceHandler) executeQuery(query backend.DataQuery, wg *sync.WaitG
 	interpolatedQuery, err := e.macroEngine.Interpolate(&query, timeRange, interpolatedQuery)
 	if err != nil {
 		errAppendDebug("interpolation failed", e.TransformQueryError(logger, err), interpolatedQuery)
+		return
+	}
+
+	interpolatedQuery, err = whereUsernameEquals(interpolatedQuery, req.PluginContext.User.Login)
+	if err != nil {
+		errAppendDebug("add current user clause failed", e.TransformQueryError(logger, err), interpolatedQuery)
 		return
 	}
 
@@ -364,6 +371,26 @@ func (e *DataSourceHandler) executeQuery(query backend.DataQuery, wg *sync.WaitG
 
 	queryResult.dataResponse.Frames = data.Frames{frame}
 	ch <- queryResult
+}
+
+func whereUsernameEquals(query string, username string) (string, error) {
+	stmt, err := sqlparser.Parse(query)
+	if err != nil {
+		return "", err
+	}
+
+	selectStmt, ok := stmt.(*sqlparser.Select)
+	if !ok {
+		return query, nil
+	}
+
+	selectStmt.AddWhere(&sqlparser.ComparisonExpr{
+		Operator: sqlparser.EqualStr,
+		Left:     &sqlparser.ColName{Name: sqlparser.NewColIdent("username")},
+		Right:    sqlparser.NewStrVal([]byte(username)),
+	})
+
+	return sqlparser.String(selectStmt), nil
 }
 
 // Interpolate provides global macros/substitutions for all sql datasources.
