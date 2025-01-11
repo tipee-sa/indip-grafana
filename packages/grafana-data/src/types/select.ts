@@ -7,6 +7,12 @@ export interface SelectableValue<T = any> {
   value?: T;
   imgUrl?: string;
   icon?: string;
+  // Secondary text under the title of the option.
   description?: string;
+  // Adds a simple native title attribute to each option.
+  title?: string;
+  // Optional component that will be shown together with other options. Does not get passed any props.
+  component?: React.ComponentType;
+  isDisabled?: boolean;
   [key: string]: any;
 }

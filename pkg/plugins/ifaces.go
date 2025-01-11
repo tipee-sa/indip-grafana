@@ -2,52 +2,95 @@ package plugins
 
 import (
 	"context"
+	"io/fs"
+	"time"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 
-	"github.com/grafana/grafana/pkg/models"
 	"github.com/grafana/grafana/pkg/plugins/backendplugin"
 )
 
-// Store is the storage for plugins.
-type Store interface {
-	// Plugin finds a plugin by its ID.
-	Plugin(ctx context.Context, pluginID string) (PluginDTO, bool)
-	// Plugins returns plugins by their requested type.
-	Plugins(ctx context.Context, pluginTypes ...Type) []PluginDTO
-	// Add adds a plugin to the store.
-	Add(ctx context.Context, pluginID, version string) error
-	// Remove removes a plugin from the store.
-	Remove(ctx context.Context, pluginID string) error
-}
-
-// Loader is responsible for loading plugins from the file system.
-type Loader interface {
-	// Load will return a list of plugins found in the provided file system paths.
-	Load(ctx context.Context, class Class, paths []string, ignore map[string]struct{}) ([]*Plugin, error)
-}
-
-// Installer is responsible for managing plugins (add / remove) on the file system.
 type Installer interface {
-	// Install downloads the requested plugin in the provided file system location.
-	Install(ctx context.Context, pluginID, version, pluginsDir, pluginZipURL, pluginRepoURL string) error
-	// Uninstall removes the requested plugin from the provided file system location.
-	Uninstall(ctx context.Context, pluginDir string) error
-	// GetUpdateInfo provides update information for the requested plugin.
-	GetUpdateInfo(ctx context.Context, pluginID, version, pluginRepoURL string) (UpdateInfo, error)
+	// Add adds a new plugin.
+	Add(ctx context.Context, pluginID, version string, opts AddOpts) error
+	// Remove removes an existing plugin.
+	Remove(ctx context.Context, pluginID, version string) error
+}
+
+type PluginSource interface {
+	PluginClass(ctx context.Context) Class
+	PluginURIs(ctx context.Context) []string
+	DefaultSignature(ctx context.Context) (Signature, bool)
+}
+
+type FileStore interface {
+	// File retrieves a plugin file.
+	File(ctx context.Context, pluginID, pluginVersion, filename string) (*File, error)
+}
+
+type File struct {
+	Content []byte
+	ModTime time.Time
+}
+
+type AddOpts struct {
+	grafanaVersion string
+
+	os   string
+	arch string
+
+	url string
+}
+
+func (co AddOpts) GrafanaVersion() string {
+	return co.grafanaVersion
+}
+
+func (co AddOpts) OS() string {
+	return co.os
+}
+
+func (co AddOpts) Arch() string {
+	return co.arch
+}
+
+func (co AddOpts) URL() string {
+	return co.url
+}
+
+func NewAddOpts(grafanaVersion, os, arch, url string) AddOpts {
+	return AddOpts{grafanaVersion: grafanaVersion, arch: arch, os: os, url: url}
 }
 
 type UpdateInfo struct {
 	PluginZipURL string
 }
 
+type FS interface {
+	fs.FS
+
+	Base() string
+	Files() ([]string, error)
+	Rel(string) (string, error)
+}
+
+type FSRemover interface {
+	Remove() error
+}
+
+type FoundBundle struct {
+	Primary  FoundPlugin
+	Children []*FoundPlugin
+}
+
+type FoundPlugin struct {
+	JSONData JSONData
+	FS       FS
+}
+
 // Client is used to communicate with backend plugin implementations.
 type Client interface {
-	backend.QueryDataHandler
-	backend.CheckHealthHandler
-	backend.StreamHandler
-	backend.CallResourceHandler
-	backend.CollectMetricsHandler
+	backend.Handler
 }
 
 // BackendFactoryProvider provides a backend factory for a provided plugin.
@@ -55,17 +98,18 @@ type BackendFactoryProvider interface {
 	BackendFactory(ctx context.Context, p *Plugin) backendplugin.PluginFactoryFunc
 }
 
-type RendererManager interface {
-	// Renderer returns a renderer plugin.
-	Renderer() *Plugin
+type SecretsPluginManager interface {
+	// SecretsManager returns a secretsmanager plugin
+	SecretsManager(ctx context.Context) *Plugin
 }
 
 type StaticRouteResolver interface {
-	Routes() []*StaticRoute
+	Routes(ctx context.Context) []*StaticRoute
 }
 
 type ErrorResolver interface {
-	PluginErrors() []*Error
+	PluginErrors(ctx context.Context) []*Error
+	PluginError(ctx context.Context, pluginID string) *Error
 }
 
 type PluginLoaderAuthorizer interface {
@@ -73,26 +117,29 @@ type PluginLoaderAuthorizer interface {
 	CanLoadPlugin(plugin *Plugin) bool
 }
 
-type PluginDashboardInfoDTO struct {
-	UID              string `json:"uid"`
-	PluginId         string `json:"pluginId"`
-	Title            string `json:"title"`
-	Imported         bool   `json:"imported"`
-	ImportedUri      string `json:"importedUri"`
-	ImportedUrl      string `json:"importedUrl"`
-	Slug             string `json:"slug"`
-	DashboardId      int64  `json:"dashboardId"`
-	FolderId         int64  `json:"folderId"`
-	ImportedRevision int64  `json:"importedRevision"`
-	Revision         int64  `json:"revision"`
-	Description      string `json:"description"`
-	Path             string `json:"path"`
-	Removed          bool   `json:"removed"`
+type Licensing interface {
+	Environment() []string
+
+	Edition() string
+
+	Path() string
+
+	AppURL() string
 }
 
-type PluginDashboardManager interface {
-	// GetPluginDashboards gets dashboards for a certain org/plugin.
-	GetPluginDashboards(ctx context.Context, orgID int64, pluginID string) ([]*PluginDashboardInfoDTO, error)
-	// LoadPluginDashboard loads a plugin dashboard.
-	LoadPluginDashboard(ctx context.Context, pluginID, path string) (*models.Dashboard, error)
+type SignatureCalculator interface {
+	Calculate(ctx context.Context, src PluginSource, plugin FoundPlugin) (Signature, error)
+}
+
+type KeyStore interface {
+	Get(ctx context.Context, key string) (string, bool, error)
+	Set(ctx context.Context, key string, value any) error
+	Delete(ctx context.Context, key string) error
+	ListKeys(ctx context.Context) ([]string, error)
+	GetLastUpdated(ctx context.Context) (time.Time, error)
+	SetLastUpdated(ctx context.Context) error
+}
+
+type KeyRetriever interface {
+	GetPublicKey(ctx context.Context, keyID string) (string, error)
 }

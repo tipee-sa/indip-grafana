@@ -1,15 +1,12 @@
-import React from 'react';
 import { render, screen } from '@testing-library/react';
-import { ValueMappingsEditor, Props } from './ValueMappingsEditor';
-import { MappingType } from '@grafana/data';
 
-const setup = (spy?: any, propOverrides?: object) => {
+import { MappingType, StandardEditorsRegistryItem } from '@grafana/data';
+
+import { ValueMappingsEditor, Props } from './ValueMappingsEditor';
+
+const setup = (propOverrides?: Partial<Props>) => {
   const props: Props = {
-    onChange: (mappings: any) => {
-      if (spy) {
-        spy(mappings);
-      }
-    },
+    onChange: jest.fn(),
     value: [
       {
         type: MappingType.ValueToText,
@@ -26,6 +23,10 @@ const setup = (spy?: any, propOverrides?: object) => {
         },
       },
     ],
+    item: {} as StandardEditorsRegistryItem,
+    context: {
+      data: [],
+    },
   };
 
   Object.assign(props, propOverrides);
@@ -38,5 +39,24 @@ describe('Render', () => {
     setup();
     const button = screen.getByText('Edit value mappings');
     expect(button).toBeInTheDocument();
+  });
+
+  it('should render icon picker when icon exists and icon setting is set to true', () => {
+    const propOverrides: Partial<Props> = {
+      item: { settings: { icon: true } } as StandardEditorsRegistryItem,
+      value: [
+        {
+          type: MappingType.ValueToText,
+          options: {
+            '20': { text: 'Ok', icon: 'test' },
+          },
+        },
+      ],
+    };
+    setup(propOverrides);
+
+    const iconPicker = screen.getByTestId('iconPicker');
+
+    expect(iconPicker).toBeInTheDocument();
   });
 });

@@ -8,13 +8,16 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+
 	"github.com/grafana/grafana/pkg/api/routing"
 	"github.com/grafana/grafana/pkg/infra/log"
-	"github.com/grafana/grafana/pkg/models"
+	"github.com/grafana/grafana/pkg/services/contexthandler/ctxkey"
+	contextmodel "github.com/grafana/grafana/pkg/services/contexthandler/model"
+	"github.com/grafana/grafana/pkg/services/user"
 	"github.com/grafana/grafana/pkg/web"
 )
 
-var requests = map[string]*models.ReqContext{}
+var requests = map[string]*contextmodel.ReqContext{}
 
 type Server struct {
 	t             testing.TB
@@ -28,14 +31,15 @@ func NewServer(t testing.TB, routeRegister routing.RouteRegister) *Server {
 	t.Helper()
 
 	m := web.New()
-	initCtx := &models.ReqContext{}
+	initCtx := &contextmodel.ReqContext{}
 	m.Use(func(c *web.Context) {
 		initCtx.Context = c
 		initCtx.Logger = log.New("api-test")
-		c.Map(initCtx)
+
+		c.Req = c.Req.WithContext(ctxkey.Set(c.Req.Context(), initCtx))
 	})
 
-	m.Use(requestContextMiddleware())
+	m.UseMiddleware(requestContextMiddleware())
 
 	routeRegister.Register(m.Router)
 	testServer := httptest.NewServer(m)
@@ -47,6 +51,16 @@ func NewServer(t testing.TB, routeRegister routing.RouteRegister) *Server {
 		Mux:           m,
 		TestServer:    testServer,
 	}
+}
+
+// NewGetRequest creates a new GET request setup for test.
+func (s *Server) NewGetRequest(target string) *http.Request {
+	return s.NewRequest(http.MethodGet, target, nil)
+}
+
+// NewPostRequest creates a new POST request setup for test.
+func (s *Server) NewPostRequest(target string, body io.Reader) *http.Request {
+	return s.NewRequest(http.MethodPost, target, body)
 }
 
 // NewRequest creates a new request setup for test.
@@ -65,9 +79,17 @@ func (s *Server) NewRequest(method string, target string, body io.Reader) *http.
 	return req
 }
 
-// Send sends an HTTP request to the test server and returns an HTTP response
+// Send sends a HTTP request to the test server and returns an HTTP response.
 func (s *Server) Send(req *http.Request) (*http.Response, error) {
 	return http.DefaultClient.Do(req)
+}
+
+// SendJSON sets the Content-Type header to application/json and sends
+// a HTTP request to the test server and returns an HTTP response.
+// Suitable for POST/PUT/PATCH requests that sends request body as JSON.
+func (s *Server) SendJSON(req *http.Request) (*http.Response, error) {
+	req.Header.Add("Content-Type", "application/json")
+	return s.Send(req)
 }
 
 func generateRequestIdentifier() string {
@@ -83,20 +105,20 @@ func requestIdentifierFromRequest(req *http.Request) string {
 	return req.Header.Get("X-GRAFANA-WEB-TEST-ID")
 }
 
-func RequestWithWebContext(req *http.Request, c *models.ReqContext) *http.Request {
+func RequestWithWebContext(req *http.Request, c *contextmodel.ReqContext) *http.Request {
 	reqID := requestIdentifierFromRequest(req)
 	requests[reqID] = c
 	return req
 }
 
-func RequestWithSignedInUser(req *http.Request, user *models.SignedInUser) *http.Request {
-	return RequestWithWebContext(req, &models.ReqContext{
-		SignedInUser: &models.SignedInUser{},
+func RequestWithSignedInUser(req *http.Request, usr *user.SignedInUser) *http.Request {
+	return RequestWithWebContext(req, &contextmodel.ReqContext{
+		SignedInUser: usr,
 		IsSignedIn:   true,
 	})
 }
 
-func requestContextFromRequest(req *http.Request) *models.ReqContext {
+func requestContextFromRequest(req *http.Request) *contextmodel.ReqContext {
 	reqID := requestIdentifierFromRequest(req)
 	val, exists := requests[reqID]
 	if !exists {
@@ -106,23 +128,25 @@ func requestContextFromRequest(req *http.Request) *models.ReqContext {
 	return val
 }
 
-func requestContextMiddleware() web.Handler {
-	return func(res http.ResponseWriter, req *http.Request, c *models.ReqContext) {
-		ctx := requestContextFromRequest(req)
-		if ctx == nil {
-			c.Next()
-			return
-		}
+func requestContextMiddleware() web.Middleware {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			c := ctxkey.Get(r.Context()).(*contextmodel.ReqContext)
 
-		c.SignedInUser = ctx.SignedInUser
-		c.UserToken = ctx.UserToken
-		c.IsSignedIn = ctx.IsSignedIn
-		c.IsRenderCall = ctx.IsRenderCall
-		c.AllowAnonymous = ctx.AllowAnonymous
-		c.SkipCache = ctx.SkipCache
-		c.RequestNonce = ctx.RequestNonce
-		c.PerfmonTimer = ctx.PerfmonTimer
-		c.LookupTokenErr = ctx.LookupTokenErr
-		c.Map(c)
+			ctx := requestContextFromRequest(r)
+			if ctx != nil {
+				c.SignedInUser = ctx.SignedInUser
+				c.UserToken = ctx.UserToken
+				c.IsSignedIn = ctx.IsSignedIn
+				c.IsRenderCall = ctx.IsRenderCall
+				c.AllowAnonymous = ctx.AllowAnonymous
+				c.SkipDSCache = ctx.SkipDSCache
+				c.RequestNonce = ctx.RequestNonce
+				c.PerfmonTimer = ctx.PerfmonTimer
+				c.LookupTokenErr = ctx.LookupTokenErr
+			}
+
+			next.ServeHTTP(w, r)
+		})
 	}
 }
