@@ -1,10 +1,14 @@
-import React, { FC, useCallback } from 'react';
+import { useCallback } from 'react';
+import * as React from 'react';
+
 import { FieldNamePickerConfigSettings, StandardEditorProps, StandardEditorsRegistryItem } from '@grafana/data';
+import { ResourceDimensionConfig, ResourceDimensionMode } from '@grafana/schema';
 import { InlineField, InlineFieldRow, RadioButtonGroup } from '@grafana/ui';
 import { FieldNamePicker } from '@grafana/ui/src/components/MatchersUI/FieldNamePicker';
 
-import { MediaType, ResourceDimensionConfig, ResourceDimensionMode, ResourceDimensionOptions } from '../types';
 import { getPublicOrAbsoluteUrl, ResourceFolderName } from '..';
+import { MediaType, ResourceDimensionOptions, ResourcePickerSize } from '../types';
+
 import { ResourcePicker } from './ResourcePicker';
 
 const resourceOptions = [
@@ -13,18 +17,18 @@ const resourceOptions = [
   //  { label: 'Mapping', value: ResourceDimensionMode.Mapping, description: 'Map the results of a value to an svg' },
 ];
 
-const dummyFieldSettings: StandardEditorsRegistryItem<string, FieldNamePickerConfigSettings> = {
+const dummyFieldSettings = {
   settings: {},
-} as any;
+} as StandardEditorsRegistryItem<string, FieldNamePickerConfigSettings>;
 
-export const ResourceDimensionEditor: FC<
-  StandardEditorProps<ResourceDimensionConfig, ResourceDimensionOptions, any>
-> = (props) => {
+export const ResourceDimensionEditor = (
+  props: StandardEditorProps<ResourceDimensionConfig, ResourceDimensionOptions, unknown>
+) => {
   const { value, context, onChange, item } = props;
   const labelWidth = 9;
 
   const onModeChange = useCallback(
-    (mode) => {
+    (mode: ResourceDimensionMode) => {
       onChange({
         ...value,
         mode,
@@ -34,7 +38,7 @@ export const ResourceDimensionEditor: FC<
   );
 
   const onFieldChange = useCallback(
-    (field) => {
+    (field = '') => {
       onChange({
         ...value,
         field,
@@ -62,6 +66,7 @@ export const ResourceDimensionEditor: FC<
   const showSourceRadio = item.settings?.showSourceRadio ?? true;
   const mediaType = item.settings?.resourceType ?? MediaType.Icon;
   const folderName = item.settings?.folderName ?? ResourceFolderName.Icon;
+  const maxFiles = item.settings?.maxFiles; // undefined leads to backend default
   let srcPath = '';
   if (mediaType === MediaType.Icon) {
     if (value?.fixed) {
@@ -102,6 +107,8 @@ export const ResourceDimensionEditor: FC<
           name={niceName(value?.fixed) ?? ''}
           mediaType={mediaType}
           folderName={folderName}
+          size={ResourcePickerSize.NORMAL}
+          maxFiles={maxFiles}
         />
       )}
       {mode === ResourceDimensionMode.Mapping && (

@@ -1,14 +1,16 @@
-import { ArrayVector, DataFrame, DataTransformerID, DataTransformerInfo, FieldType } from '@grafana/data';
-import { createLineBetween } from 'app/features/geo/format/utils';
-import { getGeometryField, getLocationMatchers } from 'app/features/geo/utils/location';
 import { mergeMap, from } from 'rxjs';
+
+import { DataFrame, DataTransformerID, DataTransformerInfo, FieldType } from '@grafana/data';
+import { createGeometryCollection, createLineBetween } from 'app/features/geo/format/utils';
+import { getGeometryField, getLocationMatchers } from 'app/features/geo/utils/location';
+
 import { SpatialOperation, SpatialAction, SpatialTransformOptions } from './models.gen';
 import { doGeomeryCalculation, toLineString } from './utils';
 
 export const spatialTransformer: DataTransformerInfo<SpatialTransformOptions> = {
   id: DataTransformerID.spatial,
   name: 'Spatial operations',
-  description: 'Apply spatial operations to query results',
+  description: 'Apply spatial operations to query results.',
   defaultOptions: {},
 
   operator: (options) => (source) => source.pipe(mergeMap((data) => from(doSetGeometry(data, options)))),
@@ -26,10 +28,17 @@ async function doSetGeometry(frames: DataFrame[], options: SpatialTransformOptio
       const src = getGeometryField(frame, location);
       const target = getGeometryField(frame, targetLocation);
       if (src.field && target.field) {
+        const fields = [...frame.fields];
         const line = createLineBetween(src.field, target.field);
+        const first = fields[0];
+        if (first.type === FieldType.geo && first !== src.field && first !== target.field) {
+          fields[0] = createGeometryCollection(first, line); //
+        } else {
+          fields.unshift(line);
+        }
         return {
           ...frame,
-          fields: [line, ...frame.fields],
+          fields,
         };
       }
       return frame;
@@ -55,7 +64,7 @@ async function doSetGeometry(frames: DataFrame[], options: SpatialTransformOptio
                   ...info.field,
                   name,
                   type: FieldType.geo,
-                  values: new ArrayVector([toLineString(info.field)]),
+                  values: [toLineString(info.field)],
                 },
               ],
             };
